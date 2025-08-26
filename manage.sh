@@ -112,45 +112,54 @@ BACKUP_INTERVAL = 3600
 PROXY_URL = "${PROXY_STRING}"
 
 # --- Do not edit below this line ---
-import requests, time, datetime
+import requests, time, datetime, json
 
 def get_proxies():
     if PROXY_URL:
         return {'http': PROXY_URL, 'https': PROXY_URL}
     return None
 
-def send_request(method, url, **kwargs):
-    final_kwargs = kwargs
-    proxies = get_proxies()
-    if proxies:
-        final_kwargs['proxies'] = proxies
-    
+def get_session():
     session = requests.Session()
     session.verify = False
     requests.packages.urllib3.disable_warnings()
 
-    if method.lower() == 'post':
-        return session.post(url, **final_kwargs)
-    return session.get(url, **final_kwargs)
-
-def login_and_get_backup():
+    login_url = f"{PANEL_URL}/login"
+    payload = {"username": PANEL_USERNAME, "password": PANEL_PASSWORD}
+    
     try:
-        print(f"[{datetime.datetime.now()}] Attempting to log in...")
-        login_payload = {'username': PANEL_USERNAME, 'password': PANEL_PASSWORD}
-        login_response = send_request('post', f"{PANEL_URL}/login", data=login_payload)
-        login_response.raise_for_status()
-        if not login_response.json().get('success', False):
-            print("❌ Login failed. Check credentials.")
+        response = session.post(login_url, json=payload, timeout=10, proxies=get_proxies())
+        if response.status_code == 200 and ('session' in session.cookies or '3x-ui' in session.cookies):
+            print("✅ Login successful and session cookie received.")
+            return session
+        else:
+            print(f"❌ Login failed. Status: {response.status_code}, Response: {response.text}")
             return None
-        print("✅ Login successful.")
-        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Panel connection error during login: {e}")
+        return None
+
+def get_backup_content(session):
+    if not session:
+        return None
+    
+    backup_url = f"{PANEL_URL}/server/getDb"
+    try:
         print("Downloading backup file...")
-        backup_response = send_request('get', f"{PANEL_URL}/server/getDb", stream=True)
-        backup_response.raise_for_status()
-        print("✅ Backup file downloaded.")
-        return backup_response.content
-    except Exception as e:
-        print(f"❌ An error occurred: {e}")
+        response = session.get(backup_url, timeout=20, proxies=get_proxies())
+        if response.status_code == 200 and response.content:
+            # A simple check to see if it's likely a database file not an html page
+            if response.content.startswith(b'SQLite format 3'):
+                print("✅ Backup file downloaded successfully.")
+                return response.content
+            else:
+                print("❌ Downloaded file is not a valid SQLite DB. Probably a login page due to failed auth.")
+                return None
+        else:
+            print(f"❌ Failed to download backup file. Status: {response.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Network error while downloading backup: {e}")
         return None
 
 def send_to_telegram(db_content):
@@ -165,23 +174,30 @@ def send_to_telegram(db_content):
     files = {'document': (BACKUP_FILENAME, db_content)}
     data = {'chat_id': CHAT_ID, 'caption': caption, 'parse_mode': 'Markdown'}
     try:
-        send_request('post', url, data=data, files=files)
-        print("✅ Backup sent to Telegram.")
+        response = requests.post(url, data=data, files=files, proxies=get_proxies())
+        if response.status_code == 200:
+            print("✅ Backup sent to Telegram.")
+        else:
+            print(f"❌ Telegram sending error: {response.json()}")
     except Exception as e:
-        print(f"❌ Telegram sending error: {e}")
+        print(f"❌ Telegram connection error: {e}")
 
 def main_loop():
     while True:
         print(f"\\n--- Running backup for {CUSTOM_NAME} ---")
-        backup_data = login_and_get_backup()
-        if backup_data: send_to_telegram(backup_data)
+        session = get_session()
+        backup_data = get_backup_content(session)
+        if backup_data: 
+            send_to_telegram(backup_data)
         print(f"--- Process finished. Next run in {BACKUP_INTERVAL / 3600:.1f} hour(s). ---")
         time.sleep(BACKUP_INTERVAL)
 
 if __name__ == "__main__":
     print(f">>> Initial test for {CUSTOM_NAME}...")
-    backup = login_and_get_backup()
-    if backup: send_to_telegram(backup)
+    s = get_session()
+    backup = get_backup_content(s)
+    if backup:
+        send_to_telegram(backup)
     main_loop()
 EOL
 
@@ -287,7 +303,6 @@ edit_bot() {
     read NEW_PROXY
     # If user presses enter, keep the old value. Note: this allows removing a proxy by entering a space and then deleting it.
     if [ -z "$NEW_PROXY" ]; then
-        # Check if the variable was truly empty or just had spaces
         if [[ "$NEW_PROXY" != " " ]]; then
             NEW_PROXY=$CURRENT_PROXY
         fi
