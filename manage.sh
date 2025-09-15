@@ -167,7 +167,7 @@ def send_to_telegram(db_content):
     print("Sending backup to Telegram...")
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     caption = (f"📅 **API Backup | {timestamp}**\\n\\n"
-               f"🖥️ Server: {CUSTOM_NAME}\\n"
+               f"🖥️ Server: {CUSTOM_NAME}\\n\n"
                f"🌐 IP: {SERVER_IP}")
     
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
