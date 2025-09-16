@@ -70,7 +70,9 @@ install_new_bot() {
     if command -v pip3 &> /dev/null; then
         pip3 install -U requests pysocks
     fi
+    
     clear
+    
     # Get User Input
     read -p "Enter a unique name for this bot/service (e.g., MyServer1, no spaces): " BOT_NAME
     BOT_NAME=$(echo "$BOT_NAME" | tr -d '[:space:]' | tr -cd '[:alnum:]_-')
