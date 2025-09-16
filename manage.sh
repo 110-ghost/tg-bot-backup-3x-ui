@@ -63,7 +63,7 @@ install_new_bot() {
     # Dependency Check and Install
     echo "Ensuring dependencies (python3, pip, curl, requests, pysocks) are installed..."
     if command -v apt-get &> /dev/null; then
-        apt-get update -y && apt-get install -y python3 python3-pip curl
+        apt-get update -y && apt-get install -y python3 python3-pip curl && apt-get install python3-socks
     elif command -v yum &> /dev/null; then
         yum install -y python3 python3-pip curl
     fi
