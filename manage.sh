@@ -220,7 +220,7 @@ def send_to_telegram(db_content):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     public_ip = get_public_ip()
     caption = (f"📅 **API Backup | {timestamp}**\\n\\n"
-               f"🖥️ Server: {CUSTOM_NAME}\\n"
+               f"🖥️ Server: {CUSTOM_NAME}\\n\n"
                f"🌐 IP: {public_ip}")
 
     files = {'document': (BACKUP_FILENAME, db_content)}
