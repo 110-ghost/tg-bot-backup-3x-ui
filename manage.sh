@@ -99,12 +99,12 @@ install_new_bot() {
         read -p "Enter Telegram Chat ID #$i: " TMP_CHAT
         CHAT_IDS+=("$TMP_CHAT")
     done
-    read -p "Enter 3x-ui Panel URL (e.g., http://127.0.0.1:2053): " PANEL_URL
+    read -p "Enter 3x-ui Panel URL (e.g., http://127.0.0.1:2053/URIPath): " PANEL_URL
     read -p "Enter 3x-ui Panel Username: " PANEL_USERNAME
     read -p "Enter 3x-ui Panel Password: " PANEL_PASSWORD
     echo "Proxy configuration (leave blank to skip):"
-    read -p "  Proxy host (e.g., 127.0.0.1): " PROXY_HOST
-    read -p "  Proxy port (e.g., 3663): " PROXY_PORT
+    read -p "  Proxy-socks5 host (e.g., 127.0.0.1): " PROXY_HOST
+    read -p "  Proxy port (e.g., 443 ): " PROXY_PORT
     read -p "  Proxy username (optional): " PROXY_USER
     read -p "  Proxy password (optional): " PROXY_PASS
     PROXY_STRING=""
